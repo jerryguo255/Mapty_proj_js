@@ -77,81 +77,109 @@ class App {
     const duration = inputDuration.value;
     const cadence = inputCadence.value;
     const elevation = inputElevation.value;
-    const type = inputType.options[inputType.selectedIndex].text;
+    // const type = inputType.options[inputType.selectedIndex].text;
+    const type = inputType.value;
     let workout = "";
-    let dataVaild = false;
-    //check if data is empty
-    if (
-      dist?.trim() &&
-      duration?.trim() &&
-      (type === "Running" ? cadence?.trim() : elevation?.trim())
-    ) {
-      //check if data is a number
-      if (
-        parseInt(dist) &&
-        parseInt(duration) &&
-        (type === "Running" ? parseInt(cadence) : parseInt(elevation))
-      ) {
-        console.log(typeof parseInt(dist));
-        //check if data is >= 0
-        if (
-          dist > 0 &&
-          duration > 0 &&
-          (type === "Running" ? cadence > 0 : elevation > 0)
-        ) {
-          dataVaild = true;
-        } else {
-          alert("number should be greater equal 0");
-        }
-      } else {
-        console.log(typeof parseInt(dist));
-        alert("all fields need to be number");
-      }
-    } else {
-      alert("all fields need to fill");
-    }
 
-    if (dataVaild) {
-      //create corresponding instance
-      if (type === "Running") {
-        workout = new Running(
-          this.#coords,
-          inputDistance.value,
-          inputDuration.value,
-          inputCadence.value
-        );
-      } else
-        workout = new Cycling(
-          this.#coords,
-          inputDistance.value,
-          inputDuration.value,
-          inputElevation.value
-        );
+    //rewrite using Guard Clauses
 
-      //clear input fields & hide form
-      inputDistance.value = inputDuration.value = inputElevation.value = inputCadence.value =
-        "";
-      form.classList.add("hidden");
+    //check if datas is empty
+    const allInputsFilled = function (...fields) {
+      // let flag = true;
+      // fields.forEach(function (el, index, _) {
+      //   if (el === "") flag = false;
+      // });
+      // return flag;
+      return fields.every((v) => v !== "");
+    };
 
-      //add the instance to array
-      this.#workouts.push(workout);
+    const isAllInputsNumber = (...fields) =>
+      fields.every((v) => Number.isFinite(v));
 
-      //render workout on map as marker
-      this._displayMarker(workout);
+    const isAllInputsPositive = (...fields) => fields.every((v) => v >= 0);
 
-      //render workout on side list
-      TODO;
-    }
+    //#region first try
+
+    //let dataVaild = false;
+
+    // //check if data is empty
+    // if (
+    //   dist?.trim() &&
+    //   duration?.trim() &&
+    //   (type === "Running" ? cadence?.trim() : elevation?.trim())
+    // ) {
+    //   //check if data is a number
+    //   if (
+    //     parseInt(dist) &&
+    //     parseInt(duration) &&
+    //     (type === "Running" ? parseInt(cadence) : parseInt(elevation))
+    //   ) {
+    //     //check if data is >= 0
+    //     if (
+    //       dist > 0 &&
+    //       duration > 0 &&
+    //       (type === "Running" ? cadence > 0 : elevation > 0)
+    //     ) {
+    //       dataVaild = true;
+    //     } else {
+    //       alert("number should be greater equal 0");
+    //     }
+    //   } else {
+    //     console.log(typeof parseInt(dist));
+    //     alert("all fields need to be number");
+    //   }
+    // } else {
+    //   alert("all fields need to fill");
+    // }
+
+    // if (dataVaild) {
+    //   //create corresponding instance
+    //   if (type === "Running") {
+    //     workout = new Running(
+    //       this.#coords,
+    //       inputDistance.value,
+    //       inputDuration.value,
+    //       inputCadence.value
+    //     );
+    //   } else
+    //     workout = new Cycling(
+    //       this.#coords,
+    //       inputDistance.value,
+    //       inputDuration.value,
+    //       inputElevation.value
+    //     );
+    //#endregion
+    //clear input fields & hide form
+    inputDistance.value = inputDuration.value = inputElevation.value = inputCadence.value =
+      "";
+    form.classList.add("hidden");
+
+    //add the instance to array
+    this.#workouts.push(workout);
+
+    //render workout on map as marker
+    this._displayMarker(this.#workouts);
+
+    //render workout on side list
+    //TODO;
   }
 
-  _displayMarker(workout) {
-    console.log(this.#workouts);
-    const popup = L.popup({
-      className: workout instanceof Running ? `running-popup` : `cycling-popup`,
-      closeOnClick: false,
-      autoClose: false,
-    }).setContent("s");
-    L.marker(this.#coords).addTo(this.#myMap).bindPopup(popup).openPopup();
+  _displayMarker(workouts) {
+    L.layerGroup().clearLayers();
+    workouts.forEach(
+      function (e, index) {
+        //console.log(e);
+        const popup = L.popup({
+          className: e instanceof Running ? `running-popup` : `cycling-popup`,
+          closeOnClick: false,
+          autoClose: false,
+        }).setContent(
+          e instanceof Running ? `${index}. Running` : `${index}. Cycling`
+        );
+
+        L.marker(this.#coords).addTo(this.#myMap).bindPopup(popup).openPopup();
+      }.bind(this)
+    );
   }
 }
 
