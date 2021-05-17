@@ -57,7 +57,7 @@ class App {
     //show form for each click
     form.classList.remove("hidden");
     inputDistance.focus();
-    //get coords from click event , then stored coords
+    //get coords from map click event , then stored coords
     this.#coords = [e.latlng.lat, e.latlng.lng];
   }
 
@@ -83,7 +83,8 @@ class App {
 
     //rewrite using Guard Clauses
 
-    //check if datas is empty
+    //#region  validition methods
+    //check if datas is all filled
     const allInputsFilled = function (...fields) {
       // let flag = true;
       // fields.forEach(function (el, index, _) {
@@ -93,11 +94,52 @@ class App {
       return fields.every((v) => v !== "");
     };
 
+    //check if datas is all numbers
     const isAllInputsNumber = (...fields) =>
-      fields.every((v) => Number.isFinite(v));
+      //fields.forEach((e) => console.log(Number.parseInt(e)));
+      fields.every((v) => Number.isFinite(Number.parseInt(v)));
 
-    const isAllInputsPositive = (...fields) => fields.every((v) => v >= 0);
+    //check if datas is all numbers positive except elevation
+    const isAllInputsPositive = (...fields) =>
+      fields.every((v) => Number.parseInt(v) >= 0);
+    //#endregion
 
+    //create corresponding object
+    if (type == "running") {
+      if (!allInputsFilled(dist, duration, cadence)) {
+        return alert("all fields need filled");
+      }
+      if (!isAllInputsNumber(dist, duration, cadence)) {
+        return alert("all fields need be a number");
+      }
+      if (!isAllInputsPositive(dist, duration, cadence)) {
+        return alert("all number need be positive");
+      }
+      workout = new Running(
+        this.#coords,
+        Number.parseInt(dist),
+        Number.parseInt(duration),
+        Number.parseInt(cadence)
+      );
+    }
+
+    if (type == "cycling") {
+      if (!allInputsFilled(dist, duration, elevation)) {
+        return alert("all fields need filled");
+      }
+      if (!isAllInputsNumber(dist, duration, elevation)) {
+        return alert("all fields need be a number");
+      }
+      if (!isAllInputsPositive(dist, duration)) {
+        return alert("dist, duration need be positive");
+      }
+      workout = new Cycling(
+        this.#coords,
+        Number.parseInt(dist),
+        Number.parseInt(duration),
+        Number.parseInt(elevation)
+      );
+    }
     //#region first try
 
     //let dataVaild = false;
@@ -158,17 +200,17 @@ class App {
     this.#workouts.push(workout);
 
     //render workout on map as marker
-    this._displayMarker(this.#workouts);
+    this._displayMarker();
 
     //render workout on side list
     //TODO;
   }
 
-  _displayMarker(workouts) {
+  _displayMarker() {
     L.layerGroup().clearLayers();
-    workouts.forEach(
+    this.#workouts.forEach(
       function (e, index) {
-        //console.log(e);
+        console.log(e);
         const popup = L.popup({
           className: e instanceof Running ? `running-popup` : `cycling-popup`,
           closeOnClick: false,
