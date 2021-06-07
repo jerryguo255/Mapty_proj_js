@@ -1,8 +1,5 @@
 "use strict";
 
-// prettier-ignore
-const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
 const form = document.querySelector(".form");
 const containerWorkouts = document.querySelector(".workouts");
 const inputType = document.querySelector(".form__input--type");
@@ -192,41 +189,62 @@ class App {
     //     );
     //#endregion
     //clear input fields & hide form
-    inputDistance.value = inputDuration.value = inputElevation.value = inputCadence.value =
-      "";
+    inputDistance.value =
+      inputDuration.value =
+      inputElevation.value =
+      inputCadence.value =
+        "";
     form.classList.add("hidden");
 
     //add the instance to array
     this.#workouts.push(workout);
 
     //render workout on map as marker
-    this._displayMarker();
+    this._displayMarker(workout);
+    this._displaySideList(workout);
 
     //render workout on side list
     //TODO;
   }
 
-  _displayMarker() {
+  _displayMarker(workout) {
     L.layerGroup().clearLayers();
-    this.#workouts.forEach(
-      function (e, index) {
-        console.log(e);
-        const popup = L.popup({
-          className: e instanceof Running ? `running-popup` : `cycling-popup`,
-          closeOnClick: false,
-          autoClose: false,
-        }).setContent(
-          e instanceof Running ? `${index}. Running` : `${index}. Cycling`
-        );
 
-        L.marker(this.#coords).addTo(this.#myMap).bindPopup(popup).openPopup();
-      }.bind(this)
-    );
+    console.log(workout);
+    const popup = L.popup({
+      className: workout.type == "running" ? `running-popup` : `cycling-popup`,
+      closeOnClick: false,
+      autoClose: false,
+    }).setContent(workout.type == "running" ? ` Running` : ` Cycling`);
+
+    L.marker(this.#coords).addTo(this.#myMap).bindPopup(popup).openPopup();
+  }
+
+  _displaySideList(workout) {
+    const html = `
+  <li class="workout workout--${workout.type}" data-id="${workout.id}">
+    <h2 class="workout__title">${workout.description}</h2>
+    <div class="workout__details">
+      <span class="workout__icon">${
+        workout.type == "running" ? `🏃‍♂️` : `🚴‍♀️`
+      }</span>
+      <span class="workout__value">${workout.distance}</span>
+      <span class="workout__unit">km</span>
+    </div>
+    <div class="workout__details">
+      <span class="workout__icon">⏱</span>
+      <span class="workout__value">${workout.duration}</span>
+      <span class="workout__unit">min</span>
+    </div>
+  </li>`;
+    containerWorkouts.insertAdjacentHTML("beforeend", html);
   }
 }
 
 //#region  Data structure
 class Workout {
+  date = new Date();
+  id = (Date.now() + " ").slice(-10);
   constructor(coords, distance, duration) {
     this.coords = coords;
     //Kilometer
@@ -234,12 +252,23 @@ class Workout {
     //mintue
     this.duration = duration;
   }
+
+  _setDescription() {
+    // prettier-ignore
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    this.description = `${this.type[0].toUppercase()}${this.type.slice(1)} on ${
+      months[this.date.getMonth()]
+    } ${this.date.getDate()}`;
+  }
 }
 
 class Cycling extends Workout {
+  type = "cycling";
   constructor(coords, distance, duration, elevationGain) {
     super(coords, distance, duration);
     this.elevationGain = elevationGain;
+    this.calcSpeed();
+    this._setDescription();
   }
   calcSpeed() {
     // return km/h
@@ -249,9 +278,12 @@ class Cycling extends Workout {
 }
 
 class Running extends Workout {
+  type = "running";
   constructor(coords, distance, duration, candence) {
     super(coords, distance, duration);
     this.candence = candence;
+    this.calcPace();
+    this._setDescription();
   }
 
   calcPace() {
