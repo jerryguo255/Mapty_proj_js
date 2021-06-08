@@ -12,6 +12,7 @@ class App {
   #myMap;
   #coords;
   #workouts = [];
+  #mapZoomLevel = 11;
   constructor() {
     this._getPosition();
 
@@ -20,6 +21,10 @@ class App {
 
     //s5 add submit event to form,
     form.addEventListener("submit", this._newWorkout.bind(this));
+
+    //feature that will move the map to the position of workout that was clicked in the sidelist
+    //using event deligation to parent element
+    containerWorkouts.addEventListener("click", this._moveToPopup.bind(this));
   }
   //s1 getGeoLocation
   _getPosition() {
@@ -38,7 +43,10 @@ class App {
     if (position instanceof GeolocationPosition)
       ({ latitude, longitude } = position.coords);
 
-    this.#myMap = L.map("map").setView([latitude, longitude], 13);
+    this.#myMap = L.map("map").setView(
+      [latitude, longitude],
+      this.#mapZoomLevel
+    );
 
     //set tileLayer to myMap
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -56,6 +64,19 @@ class App {
     inputDistance.focus();
     //get coords from map click event , then stored coords
     this.#coords = [e.latlng.lat, e.latlng.lng];
+  }
+
+  _clearInputNHideForm() {
+    inputDistance.value =
+      inputDuration.value =
+      inputElevation.value =
+      inputCadence.value =
+        "";
+
+    //avoid animation
+    form.style.display = "none";
+    form.classList.add("hidden");
+    setTimeout(() => (form.style.display = "grid"), 11);
   }
 
   _toggleElevationField() {
@@ -189,39 +210,34 @@ class App {
     //     );
     //#endregion
     //clear input fields & hide form
-    inputDistance.value =
-      inputDuration.value =
-      inputElevation.value =
-      inputCadence.value =
-        "";
-    form.classList.add("hidden");
+    this._clearInputNHideForm();
 
     //add the instance to array
     this.#workouts.push(workout);
 
     //render workout on map as marker
     this._displayMarker(workout);
-    this._displaySideList(workout);
 
     //render workout on side list
-    //TODO;
+    this._displaySideList(workout);
   }
 
   _displayMarker(workout) {
     L.layerGroup().clearLayers();
 
-    console.log(workout);
     const popup = L.popup({
       className: workout.type == "running" ? `running-popup` : `cycling-popup`,
       closeOnClick: false,
       autoClose: false,
-    }).setContent(workout.type == "running" ? ` Running` : ` Cycling`);
+    }).setContent(
+      (workout.type == "running" ? `🏃‍♂️ ` : `🚴‍♀️ `) + `${workout.description}`
+    );
 
     L.marker(this.#coords).addTo(this.#myMap).bindPopup(popup).openPopup();
   }
 
   _displaySideList(workout) {
-    const html = `
+    let html = `
   <li class="workout workout--${workout.type}" data-id="${workout.id}">
     <h2 class="workout__title">${workout.description}</h2>
     <div class="workout__details">
@@ -235,9 +251,58 @@ class App {
       <span class="workout__icon">⏱</span>
       <span class="workout__value">${workout.duration}</span>
       <span class="workout__unit">min</span>
+    </div>`;
+    if (workout.type === "running")
+      html += `
+    <div class="workout__details">
+       <span class="workout__icon">⚡️</span>
+       <span class="workout__value">${workout.pace.toFixed(1)}</span>
+       <span class="workout__unit">min/km</span>
     </div>
-  </li>`;
+    <div class="workout__details">
+       <span class="workout__icon">🦶🏼</span>
+       <span class="workout__value">${workout.candence}</span>
+       <span class="workout__unit">spm</span>
+    </div>
+  </li>
+  `;
+
+    if (workout.type === "cycling")
+      html += `
+      <div class="workout__details">
+       <span class="workout__icon">⚡️</span>
+       <span class="workout__value">${workout.speed.toFixed(1)}</span>
+       <span class="workout__unit">km/h</span>
+      </div>
+    <div class="workout__details">
+      <span class="workout__icon">⛰</span>
+      <span class="workout__value">${workout.elevationGain}</span>
+      <span class="workout__unit">m</span>
+    </div>
+  </li>
+  `;
+
     containerWorkouts.insertAdjacentHTML("beforeend", html);
+  }
+
+  _moveToPopup(e) {
+    //event bubbling, get the workout element
+    const workoutEl = e.target.closest(".workout");
+    console.log(e.target);
+
+    //guard clause
+    if (!workoutEl) return;
+
+    //find workout object through workout element from the UI
+    const workout = this.#workouts.find(
+      (work) => work.id === workoutEl.dataset.id
+    );
+    this.#myMap.setView(workout.coords, this.#mapZoomLevel, {
+      animate: true,
+      pan: {
+        duration: 1,
+      },
+    });
   }
 }
 
@@ -256,7 +321,7 @@ class Workout {
   _setDescription() {
     // prettier-ignore
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    this.description = `${this.type[0].toUppercase()}${this.type.slice(1)} on ${
+    this.description = `${this.type[0].toUpperCase()}${this.type.slice(1)} on ${
       months[this.date.getMonth()]
     } ${this.date.getDate()}`;
   }
