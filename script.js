@@ -14,7 +14,11 @@ class App {
   #workouts = [];
   #mapZoomLevel = 11;
   constructor() {
+    //get user's position
     this._getPosition();
+
+    //get data from local storage
+    this._getLocalStorage();
 
     //s4 when inputType change, toggles corresponding field
     inputType.addEventListener("change", this._toggleElevationField);
@@ -56,6 +60,11 @@ class App {
 
     //s3 handle click event on myMap with showForm
     this.#myMap.on("click", this._showForm.bind(this));
+
+    // marker displaying must after the map initialized
+    this.#workouts.forEach((work) => {
+      this._displayMarker(work);
+    });
   }
 
   _showForm(e) {
@@ -220,6 +229,9 @@ class App {
 
     //render workout on side list
     this._displaySideList(workout);
+
+    //set local storage to all workouts
+    this._setLocalStorage();
   }
 
   _displayMarker(workout) {
@@ -232,8 +244,8 @@ class App {
     }).setContent(
       (workout.type == "running" ? `🏃‍♂️ ` : `🚴‍♀️ `) + `${workout.description}`
     );
-
-    L.marker(this.#coords).addTo(this.#myMap).bindPopup(popup).openPopup();
+    //set the workout 's coords
+    L.marker(workout.coords).addTo(this.#myMap).bindPopup(popup).openPopup();
   }
 
   _displaySideList(workout) {
@@ -303,6 +315,29 @@ class App {
         duration: 1,
       },
     });
+  }
+
+  _setLocalStorage() {
+    //convert object to JSON String
+    localStorage.setItem("workouts", JSON.stringify(this.#workouts));
+  }
+
+  _getLocalStorage() {
+    //get the JSON String from local storage
+    const data = JSON.parse(localStorage.getItem("workouts"));
+
+    if (!data) return;
+
+    this.#workouts = data;
+
+    this.#workouts.forEach((work) => {
+      this._displaySideList(work);
+    });
+  }
+
+  reset() {
+    localStorage.removeItem("workouts");
+    location.reload();
   }
 }
 
